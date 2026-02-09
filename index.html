@@ -1,0 +1,1768 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Forum Builder（结构风格 + 字段开关 + 自定义模板 + 富文本）</title>
+
+  <style>
+    :root{
+      --bg:#fafafa;--card:#fff;--bd:#e6e6e6;--txt:#111;--muted:#666;
+      --r:14px;--r2:18px;
+      --mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+      --shadow:0 1px 0 rgba(0,0,0,.03);
+      --shadow2:0 10px 26px rgba(0,0,0,.06);
+      --btnH:40px;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--txt)}
+    .wrap{max-width:1280px;margin:0 auto;padding:16px;display:grid;grid-template-columns:1.05fr .95fr;gap:16px}
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--bd);
+      border-radius:var(--r2);
+      padding:14px;
+      box-shadow:var(--shadow);
+      min-width:0;
+    }
+    h1{font-size:16px;margin:0 0 10px;display:flex;align-items:center;gap:10px}
+    h1:after{content:"";flex:1;height:1px;background:#eee}
+
+    label{display:block;font-size:12px;color:#333;margin:10px 0 6px}
+    input, textarea, button, select{font:inherit}
+    input, textarea, select{
+      width:100%;
+      border:1px solid #ddd;
+      border-radius:12px;
+      padding:10px;
+      background:#fff;
+      outline:none;
+      min-width:0;
+    }
+    textarea{min-height:110px;resize:vertical}
+    .mono{font-family:var(--mono);font-size:12px}
+
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .section{
+      border:1px solid #eee;
+      border-radius:16px;
+      padding:12px;
+      background:#fff;
+    }
+    .section + .section{margin-top:12px}
+    .sectionTitle{
+      margin:0 0 10px;
+      font-size:12px;
+      font-weight:700;
+      display:flex;align-items:center;gap:8px;
+    }
+    .sectionTitle:after{content:"";flex:1;height:1px;background:#f0f0f0}
+
+    button{
+      height:var(--btnH);
+      border:1px solid #ddd;
+      background:#fff;
+      border-radius:12px;
+      padding:0 14px;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      user-select:none;
+      white-space:nowrap;
+    }
+    button.primary{border-color:#111;background:#111;color:#fff}
+    button.danger{border-color:#b00020;color:#b00020;background:#fff}
+    button:disabled{opacity:.45;cursor:not-allowed}
+    button:active{transform:translateY(1px)}
+    .tinyBtn{height:32px;padding:0 10px;border-radius:10px;font-size:12px}
+
+    .btns{
+      display:grid;
+      grid-template-columns:repeat(4, minmax(0, 1fr));
+      gap:10px;
+      margin-top:12px;
+    }
+    .btns.two{grid-template-columns:repeat(2, minmax(0, 1fr))}
+    .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+
+    .optRow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px}
+    .pill{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:6px 10px;border:1px solid #e7e7e7;border-radius:999px;
+      font-size:12px;color:var(--muted);background:#fff;
+    }
+    .pill strong{color:#111}
+    .mini{width:180px}
+
+    .hint{
+      margin:8px 0 0;color:var(--muted);font-size:12px;line-height:1.6;
+      background:#fbfbfb;border:1px dashed #e8e8e8;border-radius:12px;padding:10px 12px;
+    }
+
+    .status{
+      margin-top:10px;
+      font-size:12px;
+      border-radius:12px;
+      padding:10px 12px;
+      border:1px solid #eee;
+      background:#fff;
+      color:var(--muted);
+    }
+    .status.ok{border-color:rgba(10,122,47,.25); background:rgba(10,122,47,.06); color:#0a7a2f}
+    .status.warn{border-color:rgba(176,0,32,.25); background:rgba(176,0,32,.06); color:#b00020}
+
+    details.postItem{border:1px solid #eee;border-radius:16px;padding:10px;margin-top:12px;background:#fff}
+    details.postItem[open]{border-color:#ddd; box-shadow:var(--shadow2)}
+    summary.postSum{list-style:none;cursor:pointer;display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+    summary.postSum::-webkit-details-marker{display:none}
+    .sumMeta{font-size:12px;color:var(--muted);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:680px}
+    .sumSnippet{font-size:12px;color:#444;margin-top:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .sumBtns{display:flex;gap:8px;flex:0 0 auto}
+    .editArea{margin-top:10px;padding-top:10px;border-top:1px dashed #e5e5e5}
+    .small{font-size:12px;color:var(--muted)}
+    .dangerText{color:#b00020}
+    .invalidInput{border-color:#b00020 !important; box-shadow:0 0 0 2px rgba(176,0,32,.08)}
+
+    .previewBox{border:1px dashed #ccc;border-radius:16px;padding:12px;background:#fff;max-height:520px;overflow:auto}
+
+    /* Wizard */
+    .wizardMask{
+      position:fixed;inset:0;background:rgba(0,0,0,.45);
+      display:none;z-index:99999;
+      overflow:auto;padding:16px;
+      -webkit-overflow-scrolling:touch;
+      touch-action:pan-y;
+    }
+    .wizard{
+      max-width:980px;width:100%;
+      background:#fff;border-radius:20px;border:1px solid #e5e5e5;
+      margin:0 auto;max-height:calc(100vh - 32px);
+      display:flex;flex-direction:column;overflow:hidden;
+      box-shadow:var(--shadow2);
+    }
+    .wizHead{padding:14px 16px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between;flex:0 0 auto;background:linear-gradient(#fff,#fcfcfc)}
+    .wizBody{padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px;overflow:auto;flex:1 1 auto;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+    .wizCol{border:1px solid #eee;border-radius:16px;padding:12px;background:#fff}
+    .wizTitle{margin:0 0 8px 0;font-size:13px}
+    .chkGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+    .wizFoot{padding:14px 16px;border-top:1px solid #eee;display:flex;gap:10px;justify-content:flex-end;flex:0 0 auto;background:#fff;position:sticky;bottom:0}
+    .wizPreview{border:1px dashed #ccc;border-radius:16px;padding:12px;min-height:220px;background:#fafafa;overflow:auto}
+    .tag{display:inline-block;font-size:12px;border:1px solid #ddd;border-radius:999px;padding:2px 8px;color:#555;margin-right:6px;margin-top:6px}
+
+    /* 富文本编辑器 */
+    .rteBar{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 8px}
+    .rteBar button{height:32px;padding:0 10px;border-radius:10px;font-size:12px}
+    .rte{border:1px solid #ddd;border-radius:12px;padding:10px;min-height:120px;background:#fff;outline:none;white-space:normal}
+    .rte[data-placeholder]:empty:before{content: attr(data-placeholder);color:#999}
+
+    /* ========= 关键修复：桌面永远双栏显示，不受 data-view 影响 ========= */
+    @media (min-width: 769px){
+      .card.editorCard{display:block !important;}
+      .card.previewCard{display:block !important;}
+    }
+
+    /* ========= 手机 ========= */
+    @media (max-width: 768px){
+      :root{ --safe-b: env(safe-area-inset-bottom, 0px); }
+
+      /* ✅ 留足空间：底栏不遮挡 */
+      .wrap{
+        grid-template-columns: 1fr;
+        padding: 10px;
+        padding-bottom: calc(190px + var(--safe-b));
+      }
+      .card{padding:10px}
+      .row{grid-template-columns:1fr}
+      .wizBody{grid-template-columns:1fr}
+
+      .btns{grid-template-columns:repeat(2, minmax(0,1fr))}
+
+      /* ✅ 兜底：默认至少显示编辑卡 */
+      .card.editorCard{display:block;}
+      .card.previewCard{display:none;}
+
+      body[data-view="preview"] .card.editorCard{display:none;}
+      body[data-view="preview"] .card.previewCard{display:block;}
+
+      body[data-view="edit"] .card.editorCard{display:block;}
+      body[data-view="edit"] .card.previewCard{display:none;}
+
+      input, textarea, select{font-size:16px}
+      .previewBox{max-height:340px}
+
+      .appDock{
+        position:fixed;left:0;right:0;bottom:0;
+        z-index:9990;
+        padding:10px 10px calc(10px + var(--safe-b));
+        background:rgba(255,255,255,.92);
+        backdrop-filter:blur(10px);
+        border-top:1px solid #e9e9e9;
+      }
+      .dockInner{max-width:1280px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:10px}
+      .dockTop{display:flex;gap:8px;align-items:center;justify-content:space-between}
+      .dockTabs{display:flex;gap:8px;align-items:center}
+      .dockTab{
+        height:40px;padding:0 14px;border-radius:999px;border:1px solid #ddd;background:#fff;font-size:13px;cursor:pointer;
+        display:flex;align-items:center;justify-content:center;
+      }
+      .dockTab.active{border-color:#111;background:#111;color:#fff}
+      .dockActions{display:flex;gap:8px;justify-content:flex-start;flex-wrap:wrap}
+      .dockBtn{height:40px;padding:0 14px;border-radius:12px;border:1px solid #ddd;background:#fff;font-size:13px;white-space:nowrap}
+      .dockBtn.primary{border-color:#111;background:#111;color:#fff}
+    }
+
+/* ===== 按钮：字体更小 + 允许换行（不改布局） ===== */
+
+/* 让按钮文本可换行，避免溢出 */
+.btns button{
+  white-space: normal !important;   /* 允许换行 */
+  word-break: break-word;           /* 极端长词也能断 */
+  height: auto;                     /* 高度随内容增长 */
+  min-height: var(--btnH);          /* 保持原来的最小高度 */
+  line-height: 1.15;
+  padding: 8px 10px;                /* 稍微收紧，给文字更多空间 */
+  font-size: 13px;                  /* 电脑也小一点 */
+}
+
+/* 手机更小一点 */
+@media (max-width: 768px){
+  .btns button{
+    font-size: 12px;
+    padding: 8px 8px;
+  }
+}
+
+  </style>
+</head>
+
+<body>
+  <!-- Wizard -->
+  <div class="wizardMask" id="wizardMask" role="dialog" aria-modal="true">
+    <div class="wizard">
+      <div class="wizHead">
+        <div>
+          <strong>初始化设置</strong>
+          <span class="tag">结构风格</span><span class="tag">字段开关</span><span class="tag">导出方式</span><span class="tag">时间格式</span><span class="tag">随机ID</span>
+        </div>
+        <button class="tinyBtn" id="btnCloseWiz" type="button">关闭</button>
+      </div>
+
+      <div class="wizBody">
+        <div class="wizCol">
+          <h3 class="wizTitle">1) 选择“结构风格”（不依赖CSS）</h3>
+          <select id="wizStyle">
+            <option value="classic">Classic：昵称/ID ｜ 时间/#楼层</option>
+            <option value="splitmeta">SplitMeta：昵称/ID    时间/#楼层（分侧）</option>
+            <option value="compact">Compact：全部信息压一行</option>
+            <option value="bubble">Bubble：引用/正文分块</option>
+            <option value="custom">Custom：自定义每层楼 HTML 模板（占位符）</option>
+          </select>
+
+          <div id="customTplBox" style="display:none; margin-top:10px;">
+            <label>自定义：每层楼 HTML 模板</label>
+            <textarea id="wizCustomPostTpl" class="mono" placeholder="粘贴单层楼HTML，并使用占位符：{{name}} {{uid}} {{time}} {{floor}} {{quote}} {{quote_by}} {{body}}"></textarea>
+            <p class="hint">
+              占位符：{{name}} {{uid}} {{time}} {{floor}} {{quote}} {{quote_by}} {{body}}<br/>
+              quote/body 为富文本 HTML；其它为纯文本（已转义）。字段未勾选时占位符替换为空字符串。<br/>
+              TXT 的 custom 会把 quote/body 转成纯文本再替换。
+            </p>
+          </div>
+
+          <h3 class="wizTitle" style="margin-top:14px;">2) 选择导出方式</h3>
+          <select id="wizExport">
+            <option value="ao3_html">导出 AO3 HTML（复制/下载）</option>
+            <option value="txt">导出 TXT（下载纯文本）</option>
+          </select>
+
+          <h3 class="wizTitle" style="margin-top:14px;">3) 时间格式</h3>
+          <div class="optRow">
+            <label class="pill" style="cursor:pointer;">
+              <input type="checkbox" id="wizShowYear" />
+              显示/允许输入年份
+            </label>
+            <span class="small">时制：</span>
+            <select id="wizClockMode" class="mini">
+              <option value="24h">24 小时制</option>
+              <option value="12h">12 小时制（需 AM/PM）</option>
+            </select>
+          </div>
+          <p class="hint">
+            24h：2026-02-09 23:58:10 或 02-09 23:58<br/>
+            12h：2026-02-09 11:58 PM 或 02-09 11:58 AM
+          </p>
+
+          <h3 class="wizTitle" style="margin-top:14px;">4) 随机生成 ID</h3>
+          <label class="pill" style="cursor:pointer;">
+            <input type="checkbox" id="wizAutoId" />
+            自动生成缺失 ID（8位字母数字）
+          </label>
+          <p class="hint">
+            开启后不会覆盖已有 ID；可在编辑区点击“一键生成空白ID”或“为本楼生成ID”。（只填空白）
+          </p>
+
+          <p class="hint">
+            编辑中更改内容/设定后，右侧导出框不会自动更新：会提示你点击“生成 / 刷新预览”。
+          </p>
+        </div>
+
+        <div class="wizCol">
+          <h3 class="wizTitle">5) 选择帖子中显示哪些部分</h3>
+          <div class="chkGrid" id="wizFields"></div>
+
+          <h3 class="wizTitle" style="margin-top:14px;">预览（随勾选实时更新）</h3>
+          <div class="wizPreview" id="wizPreview"></div>
+        </div>
+      </div>
+
+      <div class="wizFoot">
+        <button id="btnResetWiz" type="button">恢复默认</button>
+        <button class="primary" id="btnApplyWiz" type="button">应用并进入编辑</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="card editorCard">
+      <h1>编辑区</h1>
+
+      <div class="section">
+        <div class="toolbar">
+          <span class="pill">风格：<strong id="uiStyleName"></strong></span>
+          <span class="pill">导出：<strong id="uiExportName"></strong></span>
+          <span class="pill">时间：<strong id="uiTimeFmt"></strong></span>
+          <span class="pill">随机ID：<strong id="uiAutoId"></strong></span>
+          <button class="tinyBtn" id="btnOpenWiz" type="button">更改设置</button>
+        </div>
+        <p class="hint" style="margin-top:10px;">
+          本地存档（localStorage）只在 <strong>同一浏览器 + 同一设备 + 同一域名</strong> 下读取同一份数据。<br/>
+          如需跨设备/共享进度，请使用下面的<strong>导出/导入进度(JSON)</strong>。
+        </p>
+      </div>
+
+      <div class="section" style="margin-top:12px;">
+        <p class="sectionTitle">基础信息</p>
+        <label>帖子标题</label>
+        <input id="inpTitle" placeholder="标题" />
+      </div>
+
+      <div class="section" style="margin-top:12px;">
+        <p class="sectionTitle">批量工具</p>
+
+        <div class="optRow">
+          <span class="small">一键填充空白用户名：</span>
+          <input class="mini" id="fillNameValue" placeholder="例如：某某" />
+          <button class="tinyBtn" id="btnFillBlankNames" type="button">填充</button>
+          <span class="small">（只填空白，不覆盖手动输入）</span>
+        </div>
+
+        <div class="optRow">
+          <button class="tinyBtn" id="btnGenBlankIds" type="button">一键生成空白ID</button>
+          <span class="small">（需在设置中开启“自动生成缺失ID”）</span>
+        </div>
+      </div>
+
+      <div class="section" style="margin-top:12px;">
+        <p class="sectionTitle">时间与随机推进</p>
+
+        <div class="optRow">
+          <span class="small">首楼时间：</span>
+          <input class="mini" id="inpFirstTime" placeholder="02-09 23:58:10" />
+          <button class="tinyBtn" id="btnApplyFirstTime" type="button">写入首楼</button>
+          <span class="small">（作为时间锚点；写入会自动解锁旧锁定）</span>
+        </div>
+
+        <div class="optRow">
+          <span class="pill">随机时间：<strong id="randState">未锁定</strong></span>
+          <label class="pill" style="cursor:pointer;">
+            <input type="checkbox" id="optRandomTime" checked />
+            后续楼层自动推进/填充
+          </label>
+          <span class="small">随机推进（秒）：</span>
+          <input class="mini" type="number" id="optMinSec" min="0" value="5" />
+          <span class="small">到</span>
+          <input class="mini" type="number" id="optMaxSec" min="0" value="45" />
+          <button class="tinyBtn" id="btnLockTimes" type="button">生成并锁定</button>
+          <button class="tinyBtn" id="btnRerollTimes" type="button">重新随机</button>
+          <button class="tinyBtn" id="btnUnlockTimes" type="button">解锁</button>
+        </div>
+      </div>
+
+      <div class="section" style="margin-top:12px;">
+        <p class="sectionTitle">主要操作</p>
+
+        <div class="btns">
+          <button id="btnAdd" type="button">+ 在最末尾加入一层楼</button>
+          <button class="primary" id="btnRender" type="button">生成 / 刷新预览</button>
+          <button id="btnCopy" type="button">复制内容</button>
+          <button id="btnDownload" type="button">下载内容</button>
+        </div>
+
+        <div class="btns">
+          <button id="btnExportState" type="button">导出进度(JSON)</button>
+          <button id="btnImportState" type="button">导入进度(JSON)</button>
+          <button id="btnSave" type="button">立即保存（本地）</button>
+          <button class="danger" id="btnNew" type="button">开始新帖子（一键清除）</button>
+        </div>
+
+        <input id="fileImport" type="file" accept="application/json,.json" style="display:none;" />
+        <div id="status" class="status"></div>
+      </div>
+
+      <div id="posts"></div>
+    </div>
+
+    <div class="card previewCard">
+      <h1>预览 & 导出结果</h1>
+
+      <div class="section">
+        <p class="sectionTitle">快速复制</p>
+        <div class="toolbar">
+          <button id="btnCopyHtml" type="button">一键复制 HTML 片段</button>
+          <button id="btnCopyTxt" type="button">一键复制 TXT</button>
+        </div>
+        <p class="hint" style="margin-top:10px;">
+          本地存档只在 <strong>同一浏览器 + 同一设备 + 同一域名</strong> 下读取同一份数据；如需共享/换设备继续，请用编辑区的<strong>导出/导入进度(JSON)</strong>。<br/>
+          手机上：在“预览框”里<strong>长按</strong>可复制当前预览的纯文本（适合贴聊天/备忘录）。
+        </p>
+      </div>
+
+      <div class="section" style="margin-top:12px;">
+        <p class="sectionTitle">预览（只读）</p>
+        <div class="previewBox" id="preview"></div>
+      </div>
+
+      <div class="section" style="margin-top:12px;">
+        <p class="sectionTitle">导出内容</p>
+        <textarea class="mono" id="outText" readonly></textarea>
+        <p class="hint" id="exportHint"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 手机底部 Dock（<=768px 生效） -->
+  <div class="appDock" id="appDock" style="display:none;">
+    <div class="dockInner">
+      <div class="dockTop">
+        <div class="dockTabs">
+          <button class="dockTab active" id="tabEdit" type="button">编辑</button>
+          <button class="dockTab" id="tabPreview" type="button">预览</button>
+        </div>
+        <button class="dockBtn" id="dockWiz" type="button">设置</button>
+      </div>
+
+      <div class="dockActions">
+        <button class="dockBtn primary" id="dockRender" type="button">刷新</button>
+        <button class="dockBtn" id="dockCopyHtml" type="button">复制HTML</button>
+        <button class="dockBtn" id="dockCopyTxt" type="button">复制TXT</button>
+        <button class="dockBtn" id="dockCopyCurrent" type="button">复制当前导出</button>
+        <button class="dockBtn" id="dockExportState" type="button">导出进度</button>
+        <button class="dockBtn" id="dockImportState" type="button">导入进度</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const STORAGE_KEY = "forum_builder_rte_custom_v6_stable";
+
+  const FIELD_DEFS = [
+    { key:"name", label:"昵称（name）" },
+    { key:"uid", label:"ID（@uid）" },
+    { key:"time", label:"时间（time）" },
+    { key:"floor", label:"楼层号（#floor）" },
+    { key:"quote", label:"引用块（quote）" },
+    { key:"quote_by", label:"引用署名（quote_by）" },
+    { key:"body", label:"正文（body）" }
+  ];
+
+  const defaultConfig = () => ({
+    style: "classic",
+    exportMode: "ao3_html",
+    fields: { name:true, uid:true, time:true, floor:true, quote:true, quote_by:true, body:true },
+    customPostTemplate: "",
+    time: { showYear: false, clock: "24h" },
+    autoId: { enabled: false, length: 8 }
+  });
+
+  const emptyPost = () => ({
+    name:"", uid:"", time:"",
+    hasQuote:false, quoteHtml:"", quoteBy:"",
+    bodyHtml:""
+  });
+
+  const defaultState = () => ({
+    config: defaultConfig(),
+    title: "在此处输入帖子标题",
+    options: { randomTimeEnabled:true, minSec:5, maxSec:45, locked:false, lockedTimes:[] },
+    posts: [
+      { ...emptyPost(), bodyHtml:"<p>第一层正文（可加粗/斜体/下划线）。</p>" },
+      { ...emptyPost(), hasQuote:true, quoteHtml:"<p><i>这是引用内容</i><br>可以多行。</p>", quoteBy:"——引用署名", bodyHtml:"<p>第二层正文。</p>" }
+    ]
+  });
+
+  // ---------- 基础工具 ----------
+  function $(id){ return document.getElementById(id); }
+  const wizardMask = $("wizardMask");
+  const btnOpenWiz = $("btnOpenWiz");
+  const btnCloseWiz = $("btnCloseWiz");
+  const btnApplyWiz = $("btnApplyWiz");
+  const btnResetWiz = $("btnResetWiz");
+
+  const wizStyle = $("wizStyle");
+  const customTplBox = $("customTplBox");
+  const wizCustomPostTpl = $("wizCustomPostTpl");
+  const wizExport = $("wizExport");
+  const wizFields = $("wizFields");
+  const wizPreview = $("wizPreview");
+  const wizShowYear = $("wizShowYear");
+  const wizClockMode = $("wizClockMode");
+  const wizAutoId = $("wizAutoId");
+
+  const uiStyleName = $("uiStyleName");
+  const uiExportName = $("uiExportName");
+  const uiTimeFmt = $("uiTimeFmt");
+  const uiAutoId = $("uiAutoId");
+  const exportHint = $("exportHint");
+
+  const inpTitle = $("inpTitle");
+  const postsEl = $("posts");
+  const previewEl = $("preview");
+  const outText = $("outText");
+  const statusEl = $("status");
+
+  const fillNameValue = $("fillNameValue");
+  const btnFillBlankNames = $("btnFillBlankNames");
+  const btnGenBlankIds = $("btnGenBlankIds");
+
+  const inpFirstTime = $("inpFirstTime");
+  const btnApplyFirstTime = $("btnApplyFirstTime");
+
+  const optRandomTime = $("optRandomTime");
+  const optMinSec = $("optMinSec");
+  const optMaxSec = $("optMaxSec");
+  const randState = $("randState");
+  const btnLockTimes = $("btnLockTimes");
+  const btnRerollTimes = $("btnRerollTimes");
+  const btnUnlockTimes = $("btnUnlockTimes");
+
+  const btnAdd = $("btnAdd");
+  const btnRender = $("btnRender");
+  const btnCopy = $("btnCopy");
+  const btnDownload = $("btnDownload");
+  const btnNew = $("btnNew");
+  const btnSave = $("btnSave");
+
+  const btnCopyHtml = $("btnCopyHtml");
+  const btnCopyTxt = $("btnCopyTxt");
+
+  const btnExportState = $("btnExportState");
+  const btnImportState = $("btnImportState");
+  const fileImport = $("fileImport");
+
+  const appDock = $("appDock");
+  const tabEdit = $("tabEdit");
+  const tabPreview = $("tabPreview");
+  const dockRender = $("dockRender");
+  const dockWiz = $("dockWiz");
+  const dockCopyHtml = $("dockCopyHtml");
+  const dockCopyTxt = $("dockCopyTxt");
+  const dockCopyCurrent = $("dockCopyCurrent");
+  const dockExportState = $("dockExportState");
+  const dockImportState = $("dockImportState");
+
+  function setStatus(msg, kind="ok"){
+    if(!statusEl) return;
+    statusEl.textContent = msg || "";
+    statusEl.className = "status " + (kind || "");
+  }
+  function escapeText(s){ return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+  function escapeAttr(s){ return String(s??"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+  // ---------- state ----------
+  let state = loadState() ?? defaultState();
+  let lastActiveIndex = 0;
+
+  let exportDirty = false;
+  function markExportDirty(msg="已更改内容/设定，点击“生成 / 刷新预览”以更新右侧导出框。"){
+    exportDirty = true;
+    if(exportHint) exportHint.textContent = "⚠️ 导出内容可能未更新：请点击“生成 / 刷新预览”。";
+    setStatus(msg, "warn");
+  }
+  function clearExportDirty(msg="已刷新，导出框已更新。"){
+    exportDirty = false;
+    setStatus(msg, "ok");
+  }
+
+  let autosaveTimer = null;
+  let activeRte = null;
+
+  function debounceAutosave(){
+    clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(()=>{ saveState(); }, 450);
+  }
+  function saveState(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); return true; }
+    catch(e){ setStatus("本地保存失败。","warn"); return false; }
+  }
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return null;
+      return normalizeState(JSON.parse(raw));
+    }catch(e){ return null; }
+  }
+  function normalizeState(s){
+    const base = defaultState();
+    if(!s || typeof s !== "object") return base;
+
+    s.config = s.config || base.config;
+    s.config.style = s.config.style || base.config.style;
+    s.config.exportMode = s.config.exportMode || base.config.exportMode;
+    s.config.fields = Object.assign({}, base.config.fields, s.config.fields || {});
+    s.config.customPostTemplate = (typeof s.config.customPostTemplate === "string") ? s.config.customPostTemplate : base.config.customPostTemplate;
+    s.config.time = Object.assign({}, base.config.time, s.config.time || {});
+    if(!["24h","12h"].includes(s.config.time.clock)) s.config.time.clock = "24h";
+    s.config.time.showYear = !!s.config.time.showYear;
+
+    s.config.autoId = Object.assign({}, base.config.autoId, s.config.autoId || {});
+    s.config.autoId.enabled = !!s.config.autoId.enabled;
+    s.config.autoId.length = 8;
+
+    s.title = (typeof s.title === "string") ? s.title : base.title;
+
+    s.options = Object.assign({}, base.options, s.options || {});
+    if(!Array.isArray(s.options.lockedTimes)) s.options.lockedTimes = [];
+
+    if(!Array.isArray(s.posts)) s.posts = base.posts;
+    s.posts = s.posts.map(p=>{
+      const bp = emptyPost();
+      p = Object.assign(bp, p || {});
+      p.hasQuote = !!p.hasQuote;
+      p.quoteHtml = String(p.quoteHtml||"");
+      p.bodyHtml = String(p.bodyHtml||"");
+      p.quoteBy = String(p.quoteBy||"");
+      p.name = String(p.name||"");
+      p.uid = String(p.uid||"");
+      p.time = String(p.time||"");
+      return p;
+    });
+
+    return s;
+  }
+
+  // ---------- random ----------
+  function clampNum(v,min,max){ if(!Number.isFinite(v)) return min; return Math.max(min, Math.min(max,v)); }
+  function randInt(min,max){ const a=Math.min(min,max), b=Math.max(min,max); return Math.floor(Math.random()*(b-a+1))+a; }
+  function genRandomId(len=8){
+    const chars="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let out="";
+    for(let i=0;i<len;i++) out += chars.charAt(Math.floor(Math.random()*chars.length));
+    return out;
+  }
+
+  // ---------- time ----------
+  function normalizeTimeOptions(){
+    state.options.randomTimeEnabled = !!optRandomTime.checked;
+    state.options.minSec = clampNum(+optMinSec.value,0,86400*365);
+    state.options.maxSec = clampNum(+optMaxSec.value,0,86400*365);
+    optMinSec.value = state.options.minSec;
+    optMaxSec.value = state.options.maxSec;
+  }
+
+  function getTimePlaceholder(){
+    return (state.config.time.clock === "12h")
+      ? (state.config.time.showYear ? "2026-02-09 11:58 PM" : "02-09 11:58 PM")
+      : (state.config.time.showYear ? "2026-02-09 23:58:10" : "02-09 23:58:10");
+  }
+
+  function parseTime(str){
+    const s=String(str||"").trim();
+    if(!s) return null;
+
+    const r12=/^(\d{4})-(\d{2})-(\d{2})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)$/i;
+    const r12NoY=/^(\d{2})-(\d{2})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)$/i;
+    const r24=/^(\d{4})-(\d{2})-(\d{2})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/;
+    const r24NoY=/^(\d{2})-(\d{2})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/;
+
+    let m;
+    const clock=state.config.time.clock;
+
+    if(clock==="12h"){
+      m=s.match(r12);
+      if(m){
+        const Y=+m[1], Mo=+m[2], D=+m[3], hh=+m[4], mi=+m[5], ss=+(m[6]||0), ap=m[7].toUpperCase();
+        if(hh<1||hh>12||mi>59||ss>59) return null;
+        let H=hh%12; if(ap==="PM") H+=12;
+        return new Date(Y,Mo-1,D,H,mi,ss,0);
+      }
+      m=s.match(r12NoY);
+      if(m){
+        const Y=2026, Mo=+m[1], D=+m[2], hh=+m[3], mi=+m[4], ss=+(m[5]||0), ap=m[6].toUpperCase();
+        if(hh<1||hh>12||mi>59||ss>59) return null;
+        let H=hh%12; if(ap==="PM") H+=12;
+        return new Date(Y,Mo-1,D,H,mi,ss,0);
+      }
+      return null;
+    }
+
+    m=s.match(r24);
+    if(m){
+      const Y=+m[1], Mo=+m[2], D=+m[3], H=+m[4], mi=+m[5], ss=+(m[6]||0);
+      if(H>23||mi>59||ss>59) return null;
+      return new Date(Y,Mo-1,D,H,mi,ss,0);
+    }
+    m=s.match(r24NoY);
+    if(m){
+      const Y=2026, Mo=+m[1], D=+m[2], H=+m[3], mi=+m[4], ss=+(m[5]||0);
+      if(H>23||mi>59||ss>59) return null;
+      return new Date(Y,Mo-1,D,H,mi,ss,0);
+    }
+    return null;
+  }
+
+  function fmtTime(d){
+    const showYear=!!state.config.time.showYear;
+    const clock=state.config.time.clock;
+    const Y=d.getFullYear();
+    const mm=String(d.getMonth()+1).padStart(2,"0");
+    const dd=String(d.getDate()).padStart(2,"0");
+    const mi=String(d.getMinutes()).padStart(2,"0");
+    const ss=String(d.getSeconds()).padStart(2,"0");
+
+    if(clock==="12h"){
+      let H=d.getHours();
+      const ap=(H>=12)?"PM":"AM";
+      H=H%12; if(H===0) H=12;
+      const hh=String(H).padStart(2,"0");
+      const datePart=showYear?`${Y}-${mm}-${dd}`:`${mm}-${dd}`;
+      return `${datePart} ${hh}:${mi}:${ss} ${ap}`;
+    }else{
+      const hh=String(d.getHours()).padStart(2,"0");
+      const datePart=showYear?`${Y}-${mm}-${dd}`:`${mm}-${dd}`;
+      return `${datePart} ${hh}:${mi}:${ss}`;
+    }
+  }
+
+  function computeDisplayTimes(){
+    const n=state.posts.length;
+    const times=new Array(n).fill("");
+    normalizeTimeOptions();
+
+    const manual=state.posts.map(p=>String(p.time||"").trim());
+    const locked=Array.isArray(state.options.lockedTimes)?state.options.lockedTimes:[];
+
+    for(let i=0;i<n;i++){
+      if(manual[i]) times[i]=manual[i];
+      else if(state.options.locked && locked[i]) times[i]=locked[i];
+    }
+    if(!state.options.randomTimeEnabled) return times;
+
+    const anchors=[];
+    for(let i=0;i<n;i++){
+      if(times[i]){
+        const d=parseTime(times[i]);
+        if(d) anchors.push({i,d});
+      }
+    }
+    if(anchors.length===0) return times;
+
+    for(let ai=0; ai<anchors.length-1; ai++){
+      const A=anchors[ai], B=anchors[ai+1];
+      if(B.i<=A.i+1) continue;
+      const startT=A.d.getTime(), endT=B.d.getTime();
+      if(endT<=startT) continue;
+
+      const blanks=[];
+      for(let j=A.i+1; j<B.i; j++) if(!times[j]) blanks.push(j);
+      if(!blanks.length) continue;
+
+      const picks=[];
+      const gap=endT-startT;
+      const safety=1;
+      for(let k=0;k<blanks.length;k++){
+        picks.push(startT+safety+Math.floor(Math.random()*(gap-2*safety)));
+      }
+      picks.sort((x,y)=>x-y);
+      for(let k=0;k<picks.length;k++){
+        if(k>0 && picks[k]<=picks[k-1]) picks[k]=picks[k-1]+1;
+      }
+      for(let k=picks.length-1;k>=0;k--){
+        if(picks[k]>=endT) picks[k]=endT-(picks.length-k);
+      }
+      blanks.forEach((idx,k)=> times[idx]=fmtTime(new Date(picks[k])));
+    }
+
+    const lastA=anchors[anchors.length-1];
+    let cursor=lastA.d;
+    for(let i=lastA.i+1;i<n;i++){
+      if(times[i]){
+        const d=parseTime(times[i]);
+        if(d) cursor=d;
+        continue;
+      }
+      const step=randInt(state.options.minSec,state.options.maxSec);
+      cursor=new Date(cursor.getTime()+step*1000);
+      times[i]=fmtTime(cursor);
+    }
+
+    return times;
+  }
+
+  function updateRandBadge(){ if(randState) randState.textContent = state.options.locked ? "已锁定" : "未锁定"; }
+
+  function lockTimes(){
+    const display=computeDisplayTimes();
+    state.options.locked=true;
+    state.options.lockedTimes=state.posts.map((p,i)=>(String(p.time||"").trim()?"":(display[i]||"")));
+    updateRandBadge(); debounceAutosave(); refreshAll();
+  }
+  function rerollTimes(){
+    state.options.locked=false;
+    state.options.lockedTimes=new Array(state.posts.length).fill("");
+    lockTimes();
+    setStatus("已重新随机并锁定。","ok");
+  }
+  function unlockTimes(silent=false){
+    state.options.locked=false;
+    state.options.lockedTimes=[];
+    updateRandBadge();
+    debounceAutosave();
+    if(!silent) markExportDirty("已解锁时间（导出未刷新）。点击“生成 / 刷新预览”更新。");
+  }
+
+  // ---------- UI badges/buttons ----------
+  function setButtonStates(){
+    if(btnGenBlankIds) btnGenBlankIds.disabled = !state.config.autoId.enabled;
+
+    const rt=!!state.options.randomTimeEnabled;
+    if(btnLockTimes) btnLockTimes.disabled = !rt;
+    if(btnRerollTimes) btnRerollTimes.disabled = !rt;
+    if(btnUnlockTimes) btnUnlockTimes.disabled = !state.options.locked;
+  }
+
+  function updateTopBadges(){
+    const styleNameMap={classic:"Classic",splitmeta:"SplitMeta",compact:"Compact",bubble:"Bubble",custom:"Custom"};
+    if(uiStyleName) uiStyleName.textContent = styleNameMap[state.config.style] || "Classic";
+    if(uiExportName) uiExportName.textContent = state.config.exportMode === "ao3_html" ? "AO3 HTML" : "TXT";
+    if(uiTimeFmt) uiTimeFmt.textContent = `${state.config.time.clock}${state.config.time.showYear ? " + 年份" : ""}`;
+    if(uiAutoId) uiAutoId.textContent = state.config.autoId.enabled ? "开" : "关";
+    if(inpFirstTime) inpFirstTime.placeholder = getTimePlaceholder();
+    setButtonStates();
+  }
+
+  // ---------- RTE ----------
+  function rteCommand(cmd, val=null){
+    if(!activeRte) return;
+    activeRte.focus();
+    try{ document.execCommand(cmd,false,val); }catch(e){}
+  }
+  function rteLink(){
+    if(!activeRte) return;
+    const url=prompt("输入链接 URL：");
+    if(!url) return;
+    rteCommand("createLink", url);
+  }
+  function rteClear(){ rteCommand("removeFormat"); }
+
+  // ---------- Render styles ----------
+  function renderPostByStyle(style, ctx){
+    const show=ctx.show;
+    const namePart=show.name?`<strong>${escapeText(ctx.name)}</strong>`:"";
+    const uidPart=show.uid?`@${escapeText(ctx.uid)}`:"";
+    const timePart=(show.time && ctx.time)?escapeText(ctx.time):"";
+    const floorPart=show.floor?`#${ctx.floor}`:"";
+
+    const quoteBlock=(show.quote && ctx.quoteHtml && ctx.quoteHtml.trim())
+      ? `<div class="quote">${ctx.quoteHtml}${(show.quote_by && ctx.quoteBy && ctx.quoteBy.trim()) ? `<div class="quote-by">${escapeText(ctx.quoteBy)}</div>` : ""}</div>`
+      : "";
+
+    const bodyBlock=(show.body && ctx.bodyHtml && ctx.bodyHtml.trim()) ? `<div class="body">${ctx.bodyHtml}</div>` : "";
+
+    if(style==="classic"){
+      const left=[namePart,uidPart].filter(Boolean).join(" ");
+      const right=[timePart,floorPart].filter(Boolean).join(" ");
+      const head=[left,right].filter(Boolean).join(" ｜ ");
+      return `<div class="post">
+  ${head?`<p class="user">${head}</p>`:""}
+  <div class="content">${quoteBlock}${bodyBlock}</div>
+</div>`;
+    }
+    if(style==="splitmeta"){
+      const left=[namePart,uidPart].filter(Boolean).join(" ");
+      const right=[timePart,floorPart].filter(Boolean).join(" · ");
+      return `<div class="post">
+  ${(left||right)?`<p class="user">${left}${(left&&right)?"　　":""}${right}</p>`:""}
+  <div class="content">${quoteBlock}${bodyBlock}</div>
+</div>`;
+    }
+    if(style==="compact"){
+      const head=[floorPart,namePart,uidPart,timePart].filter(Boolean).join(" · ");
+      return `<div class="post">
+  ${head?`<p class="user">${head}</p>`:""}
+  <div class="content">${quoteBlock}${bodyBlock}</div>
+</div>`;
+    }
+    if(style==="bubble"){
+      const headA=[namePart,uidPart].filter(Boolean).join(" ");
+      const headB=[timePart,floorPart].filter(Boolean).join(" ");
+      return `<div class="post">
+  ${(headA||headB)?`<p class="user">${headA}${(headA&&headB)?" ｜ ":""}${headB}</p>`:""}
+  ${quoteBlock?`<div class="block-quote">${quoteBlock}</div>`:""}
+  ${bodyBlock?`<div class="block-body">${bodyBlock}</div>`:""}
+</div>`;
+    }
+    return renderPostByStyle("classic", ctx);
+  }
+
+  function renderPostByCustomTemplate(ctx){
+    const show=ctx.show;
+    const tpl=(state.config.customPostTemplate||"").trim();
+    if(!tpl) return renderPostByStyle("classic", ctx);
+
+    const rep=(val,enabled)=> enabled?val:"";
+    const name=rep(`<strong>${escapeText(ctx.name)}</strong>`, show.name);
+    const uid=rep(`@${escapeText(ctx.uid)}`, show.uid);
+    const time=rep(escapeText(ctx.time||""), show.time);
+    const floor=rep(String(ctx.floor), show.floor);
+
+    const quote=rep((ctx.quoteHtml||""), show.quote);
+    const quoteBy=rep(escapeText(ctx.quoteBy||""), show.quote_by);
+    const body=rep((ctx.bodyHtml||""), show.body);
+
+    return tpl
+      .replaceAll("{{name}}", name)
+      .replaceAll("{{uid}}", uid)
+      .replaceAll("{{time}}", time)
+      .replaceAll("{{floor}}", floor)
+      .replaceAll("{{quote}}", quote)
+      .replaceAll("{{quote_by}}", quoteBy)
+      .replaceAll("{{body}}", body);
+  }
+
+  function buildExportHtml(){
+    const show=state.config.fields;
+    const times=computeDisplayTimes();
+    const title=escapeText(state.title||"");
+    const style=state.config.style;
+
+    const inner=state.posts.map((p,idx)=>{
+      const useQuote=!!p.hasQuote;
+      const ctx={
+        show,
+        name:p.name||"",
+        uid:p.uid||"",
+        time:times[idx]||"",
+        floor:idx+1,
+        quoteHtml:useQuote?(p.quoteHtml||""):"",
+        quoteBy:useQuote?(p.quoteBy||""):"",
+        bodyHtml:p.bodyHtml||""
+      };
+      if(style==="custom") return renderPostByCustomTemplate(ctx);
+      return renderPostByStyle(style, ctx);
+    }).join("\n");
+
+    return `<div class="forum">
+  <h3 class="title">${title}</h3>
+  ${inner}
+</div>`;
+  }
+
+  function htmlToText(html){
+    const div=document.createElement("div");
+    div.innerHTML=html||"";
+    return div.innerText.replace(/\n{3,}/g,"\n\n").trim();
+  }
+
+  function renderPostTxtByStyle(style, ctx){
+    const show=ctx.show;
+    const name=show.name?(ctx.name||""):"";
+    const uid=show.uid?("@"+(ctx.uid||"")):"";
+    const time=(show.time&&ctx.time)?(ctx.time||""):"";
+    const floor=show.floor?("#"+ctx.floor):"";
+
+    const headClassicLeft=[name,uid].filter(Boolean).join(" ");
+    const headClassicRight=[time,floor].filter(Boolean).join(" ");
+    const headClassic=[headClassicLeft,headClassicRight].filter(Boolean).join(" ｜ ");
+
+    const headSplit=(()=>{
+      const left=[name,uid].filter(Boolean).join(" ");
+      const right=[time,floor].filter(Boolean).join(" · ");
+      return [left,right].filter(Boolean).join("    ");
+    })();
+    const headCompact=[floor,name,uid,time].filter(Boolean).join(" · ");
+
+    const quoteText=(show.quote && (ctx.quoteHtml||"").trim())?htmlToText(ctx.quoteHtml):"";
+    const quoteByText=(show.quote_by && (ctx.quoteBy||"").trim())?(ctx.quoteBy||"").trim():"";
+    const bodyText=(show.body && (ctx.bodyHtml||"").trim())?htmlToText(ctx.bodyHtml):"";
+
+    if(style==="splitmeta"){
+      return [headSplit, quoteText?("【引用】\n"+quoteText+(quoteByText?("\n"+quoteByText):"")):"", bodyText].filter(Boolean).join("\n");
+    }
+    if(style==="compact"){
+      return [headCompact, quoteText?("【引】"+quoteText+(quoteByText?("\n"+quoteByText):"")):"", bodyText].filter(Boolean).join("\n");
+    }
+    if(style==="bubble"){
+      return [headClassic, quoteText?("【引用块】\n"+quoteText+(quoteByText?("\n"+quoteByText):"")):"", bodyText?("【正文】\n"+bodyText):""].filter(Boolean).join("\n");
+    }
+    return [headClassic, quoteText?("【引用】\n"+quoteText+(quoteByText?("\n"+quoteByText):"")):"", bodyText].filter(Boolean).join("\n");
+  }
+
+  function renderPostTxtByCustomTemplate(ctx){
+    const tpl=(state.config.customPostTemplate||"").trim();
+    if(!tpl) return renderPostTxtByStyle("classic", ctx);
+
+    const show=ctx.show;
+    const rep=(val,enabled)=> enabled?val:"";
+
+    const name=rep(ctx.name||"", show.name);
+    const uid=rep("@"+(ctx.uid||""), show.uid);
+    const time=rep(ctx.time||"", show.time);
+    const floor=rep(String(ctx.floor), show.floor);
+
+    const quote=rep(htmlToText(ctx.quoteHtml||""), show.quote);
+    const quoteBy=rep((ctx.quoteBy||"").trim(), show.quote_by);
+    const body=rep(htmlToText(ctx.bodyHtml||""), show.body);
+
+    return tpl
+      .replaceAll("{{name}}", name)
+      .replaceAll("{{uid}}", uid)
+      .replaceAll("{{time}}", time)
+      .replaceAll("{{floor}}", floor)
+      .replaceAll("{{quote}}", quote)
+      .replaceAll("{{quote_by}}", quoteBy)
+      .replaceAll("{{body}}", body);
+  }
+
+  function buildExportTxt(){
+    const show=state.config.fields;
+    const times=computeDisplayTimes();
+    const lines=[];
+    lines.push(state.title||"");
+    lines.push("");
+
+    const style=state.config.style;
+    state.posts.forEach((p,idx)=>{
+      const useQuote=!!p.hasQuote;
+      const ctx={
+        show,
+        name:p.name||"",
+        uid:p.uid||"",
+        time:times[idx]||p.time||"",
+        floor:idx+1,
+        quoteHtml:useQuote?(p.quoteHtml||""):"",
+        quoteBy:useQuote?(p.quoteBy||""):"",
+        bodyHtml:p.bodyHtml||""
+      };
+      const block=(style==="custom")?renderPostTxtByCustomTemplate(ctx):renderPostTxtByStyle(style, ctx);
+      if(block.trim()) lines.push(block.trim());
+      lines.push("\n---\n");
+    });
+
+    return lines.join("\n").replace(/\n{3,}/g,"\n\n");
+  }
+
+  // ---------- Posts UI ----------
+  function snippetForPost(p){
+    const a=(p.hasQuote?htmlToText(p.quoteHtml||""):"").replace(/\s+/g," ").slice(0,40);
+    const b=htmlToText(p.bodyHtml||"").replace(/\s+/g," ").slice(0,70);
+    const parts=[];
+    if(a) parts.push("【引】"+a);
+    if(b) parts.push(b);
+    return parts.join(" / ") || "（暂无内容）";
+  }
+
+  function renderPosts(){
+    postsEl.innerHTML="";
+    const times=computeDisplayTimes();
+    const show=state.config.fields;
+    const timePlaceholder=getTimePlaceholder();
+
+    state.posts.forEach((p,i)=>{
+      const d=document.createElement("details");
+      d.className="postItem";
+      d.dataset.post=String(i);
+      d.open = (i===lastActiveIndex);
+
+      const metaBits=[];
+      if(show.name) metaBits.push(p.name||"");
+      if(show.uid) metaBits.push(p.uid?("@"+p.uid):"");
+      if(show.time) metaBits.push(times[i]||p.time||"");
+      if(show.floor) metaBits.push("#"+(i+1));
+      const meta=metaBits.filter(Boolean).join(" ｜ ") || "（未显示任何头部信息）";
+
+      const timeRaw=String(p.time||"").trim();
+      const timeInvalid=!!timeRaw && !parseTime(timeRaw);
+
+      d.innerHTML = `
+        <summary class="postSum" data-sum="${i}">
+          <div>
+            <div class="sumMeta">${escapeText(meta)}</div>
+            <div class="sumSnippet">${escapeText(snippetForPost(p))}</div>
+          </div>
+          <div class="sumBtns">
+            <button class="tinyBtn danger" type="button" data-del="${i}">删除</button>
+          </div>
+        </summary>
+
+        <div class="editArea">
+          ${(show.name||show.uid)?`
+          <div class="row">
+            ${show.name?`
+            <div>
+              <label>昵称（可留空）</label>
+              <input data-k="name" data-i="${i}" value="${escapeAttr(p.name)}" />
+            </div>`:`<div></div>`}
+
+            ${show.uid?`
+            <div>
+              <label>ID（@后面，可留空）</label>
+              <input data-k="uid" data-i="${i}" value="${escapeAttr(p.uid)}" />
+              <div class="optRow" style="margin-top:8px;">
+                <button class="tinyBtn" type="button" data-genid="${i}">为本楼生成ID</button>
+                <span class="small">（8位字母数字；不会覆盖已有ID）</span>
+              </div>
+            </div>`:`<div></div>`}
+          </div>`:""}
+
+          ${show.time?`
+          <label>时间（可空=自动生成；支持 ${state.config.time.clock}，${state.config.time.showYear?"可带年份":"不强制年份"}）</label>
+          <input class="${timeInvalid?"invalidInput":""}" data-k="time" data-i="${i}" value="${escapeAttr(p.time)}" placeholder="${escapeAttr(timePlaceholder)}" />
+          <div class="small dangerText" data-timehint="${i}" style="${timeInvalid?"":"display:none;"}">
+            时间格式不合法。${state.config.time.clock==="12h"?"12小时制必须带 AM/PM。":""}
+          </div>
+          <div class="small">提示：后续某楼再次手动输入时间时，中间楼层会随机落在两次时间之间（可跨日期）。</div>
+          `:""}
+
+          ${show.quote?`
+          <label class="pill" style="cursor:pointer; display:inline-flex; margin-top:10px;">
+            <input type="checkbox" data-k="hasQuote" data-i="${i}" ${p.hasQuote?"checked":""} />
+            本楼需要引用
+          </label>
+          `:""}
+
+          ${(show.quote && p.hasQuote)?`
+          <label>引用（富文本，可空）</label>
+          <div class="rteBar">
+            <button type="button" data-rtecmd="bold">B</button>
+            <button type="button" data-rtecmd="italic">I</button>
+            <button type="button" data-rtecmd="underline">U</button>
+            <button type="button" data-rtelink="1">链接</button>
+            <button type="button" data-rteclear="1">清除格式</button>
+            <button type="button" data-rtecmd="insertLineBreak">换行</button>
+          </div>
+          <div class="rte" contenteditable="true" data-rte="quote" data-i="${i}" data-placeholder="在这里输入引用内容（可加粗/斜体/下划线）"></div>
+          `:""}
+
+          ${(show.quote && show.quote_by && p.hasQuote)?`
+          <label>引用署名（纯文本）</label>
+          <input data-k="quoteBy" data-i="${i}" value="${escapeAttr(p.quoteBy)}" placeholder="——署名/出处" />
+          `:""}
+
+          ${show.body?`
+          <label>正文（富文本）</label>
+          <div class="rteBar">
+            <button type="button" data-rtecmd="bold">B</button>
+            <button type="button" data-rtecmd="italic">I</button>
+            <button type="button" data-rtecmd="underline">U</button>
+            <button type="button" data-rtelink="1">链接</button>
+            <button type="button" data-rteclear="1">清除格式</button>
+            <button type="button" data-rtecmd="insertLineBreak">换行</button>
+          </div>
+          <div class="rte" contenteditable="true" data-rte="body" data-i="${i}" data-placeholder="在这里输入正文（可加粗/斜体/下划线）"></div>
+          `:""}
+
+          <div class="optRow" style="margin-top:10px;">
+            <button class="tinyBtn" type="button" data-insertbelow="${i}">此楼下方增加一层</button>
+            <span class="small">（会在本楼后面插入，并自动展开）</span>
+          </div>
+
+          <div class="small">提示：编辑中更改后右侧导出不会自动更新；点“生成 / 刷新预览”刷新导出框。</div>
+        </div>
+      `;
+
+      postsEl.appendChild(d);
+
+      const q=d.querySelector(`.rte[data-rte="quote"][data-i="${i}"]`);
+      if(q) q.innerHTML = p.quoteHtml || "";
+      const b=d.querySelector(`.rte[data-rte="body"][data-i="${i}"]`);
+      if(b) b.innerHTML = p.bodyHtml || "";
+    });
+  }
+
+  function refreshAll(){
+    updateTopBadges();
+    updateRandBadge();
+    renderPosts();
+
+    if(previewEl) previewEl.innerHTML = buildExportHtml();
+
+    if(state.config.exportMode==="ao3_html"){
+      outText.value = buildExportHtml();
+      exportHint.textContent = "复制后粘贴到 AO3 的 HTML 编辑器（导出只含结构与内容，不含CSS）。";
+    }else{
+      outText.value = buildExportTxt();
+      exportHint.textContent = "这是 TXT 导出（富文本会转换为纯文本）。";
+    }
+
+    debounceAutosave();
+    clearExportDirty();
+  }
+
+  // ---------- bulk ----------
+  function fillBlankNamesWith(value){
+    const v=String(value||"").trim();
+    if(!v){ setStatus("请输入要填充的名称。","warn"); return; }
+    let changed=0;
+    state.posts.forEach(p=>{
+      if(!String(p.name||"").trim()){
+        p.name=v; changed++;
+      }
+    });
+    if(changed){
+      debounceAutosave(); renderPosts(); updateTopBadges();
+      markExportDirty(`已填充 ${changed} 个空白用户名，点击“生成 / 刷新预览”更新导出。`);
+    }else setStatus("没有发现空白用户名，无需填充。","ok");
+  }
+
+  function genBlankIds(){
+    if(!state.config.autoId.enabled){
+      setStatus("请先在“更改设置”中开启：自动生成缺失 ID。","warn");
+      return;
+    }
+    let changed=0;
+    state.posts.forEach(p=>{
+      if(!String(p.uid||"").trim()){
+        p.uid=genRandomId(8); changed++;
+      }
+    });
+    if(changed){
+      debounceAutosave(); renderPosts(); updateTopBadges();
+      markExportDirty(`已生成 ${changed} 个空白ID，点击“生成 / 刷新预览”更新导出。`);
+    }else setStatus("没有发现空白ID，无需生成。","ok");
+  }
+
+  function genIdForPost(i){
+    if(!state.config.autoId.enabled){
+      setStatus("请先在“更改设置”中开启：自动生成缺失 ID。","warn");
+      return;
+    }
+    const p=state.posts[i]; if(!p) return;
+    if(String(p.uid||"").trim()){
+      setStatus("该楼已有ID，不会覆盖。","ok");
+      return;
+    }
+    p.uid=genRandomId(8);
+    debounceAutosave(); renderPosts(); updateTopBadges();
+    markExportDirty("已为本楼生成ID，点击“生成 / 刷新预览”更新导出。");
+  }
+
+  function insertPostBelow(idx){
+    const insertAt=Math.max(0, Math.min(state.posts.length, idx+1));
+    state.posts.splice(insertAt,0,{...emptyPost(), bodyHtml:"<p>新楼层正文</p>"});
+    if(state.options.locked && Array.isArray(state.options.lockedTimes)) state.options.lockedTimes.splice(insertAt,0,"");
+    lastActiveIndex=insertAt;
+    debounceAutosave();
+    refreshAll();
+    const el=postsEl.querySelector(`details.postItem[data-post="${insertAt}"]`);
+    if(el){ el.open=true; el.scrollIntoView({behavior:"smooth", block:"start"}); }
+  }
+
+  function appendPost(){
+    const insertAt=state.posts.length;
+    state.posts.splice(insertAt,0,{...emptyPost(), bodyHtml:"<p>新楼层正文</p>"});
+    if(state.options.locked && Array.isArray(state.options.lockedTimes)) state.options.lockedTimes.splice(insertAt,0,"");
+    lastActiveIndex=insertAt;
+    debounceAutosave();
+    refreshAll();
+    const el=postsEl.querySelector(`details.postItem[data-post="${insertAt}"]`);
+    if(el){ el.open=true; el.scrollIntoView({behavior:"smooth", block:"start"}); }
+  }
+
+  function applyTimeValidity(i, raw){
+    const input=postsEl.querySelector(`input[data-k="time"][data-i="${i}"]`);
+    const hint=postsEl.querySelector(`[data-timehint="${i}"]`);
+    const v=String(raw||"").trim();
+    const invalid=!!v && !parseTime(v);
+    if(input) input.classList.toggle("invalidInput", invalid);
+    if(hint){
+      hint.style.display = invalid ? "" : "none";
+      if(invalid) hint.textContent = "时间格式不合法。" + (state.config.time.clock==="12h" ? "12小时制必须带 AM/PM。" : "");
+    }
+  }
+
+  // ---------- clipboard ----------
+  async function copyToClipboard(text){
+    try{
+      await navigator.clipboard.writeText(text);
+      return true;
+    }catch(e){
+      const ta=document.createElement("textarea");
+      ta.value=text; ta.style.position="fixed"; ta.style.left="-9999px"; ta.style.top="0";
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      try{
+        const ok=document.execCommand("copy");
+        document.body.removeChild(ta);
+        return ok;
+      }catch(err){
+        document.body.removeChild(ta);
+        return false;
+      }
+    }
+  }
+  async function copyHtmlSnippet(){
+    const html=buildExportHtml();
+    const ok=await copyToClipboard(html);
+    setStatus(ok?"已复制 HTML 片段。":"复制失败，请手动选中复制。", ok?"ok":"warn");
+  }
+  async function copyTxtAll(){
+    const txt=buildExportTxt();
+    const ok=await copyToClipboard(txt);
+    setStatus(ok?"已复制 TXT。":"复制失败，请手动选中复制。", ok?"ok":"warn");
+  }
+  async function copyPreviewPlainText(){
+    const text=(previewEl && previewEl.innerText)?previewEl.innerText.trim():"";
+    if(!text){ setStatus("预览为空，无法复制。","warn"); return; }
+    const ok=await copyToClipboard(text);
+    setStatus(ok?"已复制预览纯文本。":"复制失败，请手动选中复制。", ok?"ok":"warn");
+  }
+
+  // ---------- import/export progress ----------
+  function exportStateJson(){
+    try{
+      const payload=JSON.stringify(state, null, 2);
+      const blob=new Blob([payload], {type:"application/json;charset=utf-8"});
+      const a=document.createElement("a");
+      const ts=new Date();
+      const pad=n=>String(n).padStart(2,"0");
+      const filename=`forum_progress_${ts.getFullYear()}-${pad(ts.getMonth()+1)}-${pad(ts.getDate())}_${pad(ts.getHours())}${pad(ts.getMinutes())}${pad(ts.getSeconds())}.json`;
+      a.href=URL.createObjectURL(blob);
+      a.download=filename;
+      a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+      setStatus("已导出进度 JSON（可用于跨设备导入）。","ok");
+    }catch(e){
+      setStatus("导出失败。","warn");
+    }
+  }
+
+  async function importStateFromFile(file){
+    if(!file){ setStatus("未选择文件。","warn"); return; }
+    try{
+      const text=await file.text();
+      const obj=JSON.parse(text);
+      state=normalizeState(obj);
+      lastActiveIndex=0;
+      saveState();
+      applyStateToUI();
+      refreshAll();
+      setStatus("已导入进度并写入本地存档。","ok");
+    }catch(e){
+      setStatus("导入失败：请确认这是本工具导出的 JSON 文件。","warn");
+    }finally{
+      if(fileImport) fileImport.value="";
+    }
+  }
+
+  // ---------- Wizard ----------
+  function renderWizFields(){
+    wizFields.innerHTML="";
+    FIELD_DEFS.forEach(f=>{
+      const id="fld_"+f.key;
+      const div=document.createElement("div");
+      div.innerHTML = `
+        <label class="pill" style="cursor:pointer;display:flex;gap:8px;justify-content:flex-start;">
+          <input type="checkbox" id="${id}" ${state.config.fields[f.key]?"checked":""}/>
+          ${f.label}
+        </label>`;
+      wizFields.appendChild(div);
+    });
+  }
+
+  function getWizTempConfig(){
+    const temp={
+      style:wizStyle.value,
+      exportMode:wizExport.value,
+      fields:{},
+      customPostTemplate:wizCustomPostTpl.value || "",
+      time:{ showYear:!!wizShowYear.checked, clock:wizClockMode.value },
+      autoId:{ enabled:!!wizAutoId.checked, length:8 }
+    };
+    FIELD_DEFS.forEach(f=>{
+      const el=$("fld_"+f.key);
+      temp.fields[f.key]=!!(el && el.checked);
+    });
+    return temp;
+  }
+
+  function buildWizPreview(){
+    const samplePosts=[
+      { ...emptyPost(), name:"AAA", uid:"a1B2c3D4", time:"02-09 11:11:05", hasQuote:true, quoteHtml:"<p><i>引用两行</i><br>第二行</p>", quoteBy:"——署名", bodyHtml:"<p>正文第一段</p><p><b>正文第二段</b></p>" },
+      { ...emptyPost(), name:"BBB", uid:"Z9y8X7w6", time:"02-09 11:11:25", hasQuote:false, bodyHtml:"<p>回复内容</p>" }
+    ];
+
+    const temp=getWizTempConfig();
+    const old=JSON.parse(JSON.stringify(state.config));
+
+    state.config.style=temp.style;
+    state.config.exportMode=temp.exportMode;
+    state.config.fields=temp.fields;
+    state.config.customPostTemplate=temp.customPostTemplate;
+    state.config.time=temp.time;
+    state.config.autoId=temp.autoId;
+
+    customTplBox.style.display = (wizStyle.value==="custom")?"block":"none";
+
+    const title=escapeText("示例标题");
+    const inner=samplePosts.map((p,idx)=>{
+      const ctx={
+        show:state.config.fields,
+        name:p.name, uid:p.uid, time:p.time, floor:idx+1,
+        quoteHtml:p.hasQuote?p.quoteHtml:"",
+        quoteBy:p.hasQuote?p.quoteBy:"",
+        bodyHtml:p.bodyHtml
+      };
+      if(state.config.style==="custom") return renderPostByCustomTemplate(ctx);
+      return renderPostByStyle(state.config.style, ctx);
+    }).join("\n");
+    wizPreview.innerHTML = `<div class="forum"><h3 class="title">${title}</h3>${inner}</div>`;
+
+    state.config=old;
+  }
+
+  function openWizard(){
+    wizStyle.value = state.config.style;
+    wizExport.value = state.config.exportMode;
+    renderWizFields();
+    wizCustomPostTpl.value = state.config.customPostTemplate || "";
+    wizShowYear.checked = !!state.config.time.showYear;
+    wizClockMode.value = state.config.time.clock || "24h";
+    wizAutoId.checked = !!state.config.autoId.enabled;
+
+    customTplBox.style.display = (wizStyle.value==="custom")?"block":"none";
+    buildWizPreview();
+
+    wizardMask.style.display="block";
+    wizardMask.style.zIndex="99999";
+    wizardMask.scrollTop=0;
+
+    // 锁滚动，防止“弹了但被滚走/像没显示”
+    document.body.style.overflow="hidden";
+    document.documentElement.style.overflow="hidden";
+  }
+
+  function closeWizard(){
+    wizardMask.style.display="none";
+    document.body.style.overflow="";
+    document.documentElement.style.overflow="";
+  }
+
+  // ---------- mobile view controller (核心兜底) ----------
+  function isMobileUI(){ return window.matchMedia("(max-width: 768px)").matches; }
+
+  function setView(v){
+    const view = (v==="preview") ? "preview" : "edit";
+    document.body.dataset.view = view;
+    tabEdit && tabEdit.classList.toggle("active", view==="edit");
+    tabPreview && tabPreview.classList.toggle("active", view==="preview");
+    if(view==="preview") refreshAll();
+  }
+
+  function syncDockVisibility(){
+    const on=isMobileUI();
+    if(appDock) appDock.style.display = on ? "block" : "none";
+    if(on){
+      const cur=document.body.dataset.view;
+      setView(cur==="preview" ? "preview" : "edit"); // 异常值强制回 edit
+    }else{
+      // 桌面端不需要 data-view，避免污染显示逻辑
+      try{ delete document.body.dataset.view; }catch(e){}
+    }
+  }
+
+  // ---------- events ----------
+  btnOpenWiz.addEventListener("click", openWizard);
+  btnCloseWiz.addEventListener("click", closeWizard);
+
+  wizStyle.addEventListener("change", buildWizPreview);
+  wizExport.addEventListener("change", buildWizPreview);
+  wizFields.addEventListener("change", buildWizPreview);
+  wizCustomPostTpl.addEventListener("input", buildWizPreview);
+  wizShowYear.addEventListener("change", buildWizPreview);
+  wizClockMode.addEventListener("change", buildWizPreview);
+  wizAutoId.addEventListener("change", buildWizPreview);
+
+  btnResetWiz.addEventListener("click", ()=>{
+    state.config = defaultConfig();
+    openWizard();
+  });
+
+  btnApplyWiz.addEventListener("click", ()=>{
+    const temp=getWizTempConfig();
+    state.config.style=temp.style;
+    state.config.exportMode=temp.exportMode;
+    state.config.fields=temp.fields;
+    state.config.customPostTemplate=temp.customPostTemplate;
+    state.config.time=temp.time;
+    state.config.autoId=temp.autoId;
+
+    closeWizard();
+    setStatus("已应用设置。","ok");
+    refreshAll();
+  });
+
+  wizardMask.addEventListener("mousedown", (e)=>{ if(e.target===wizardMask) closeWizard(); });
+
+  document.addEventListener("keydown", (e)=>{
+    if(e.key==="Escape" && wizardMask.style.display==="block") closeWizard();
+  });
+
+  inpTitle.addEventListener("input", ()=>{
+    state.title=inpTitle.value;
+    debounceAutosave();
+    markExportDirty();
+  });
+
+  btnFillBlankNames.addEventListener("click", ()=> fillBlankNamesWith(fillNameValue.value));
+  btnGenBlankIds.addEventListener("click", ()=> genBlankIds());
+
+  btnApplyFirstTime.addEventListener("click", ()=>{
+    const v=String(inpFirstTime.value||"").trim();
+    if(!v){ setStatus("请先输入首楼时间。","warn"); return; }
+    if(!parseTime(v)){ setStatus("首楼时间格式不合法，请按当前时间格式输入。","warn"); return; }
+
+    if(state.options.locked){ unlockTimes(true); setButtonStates(); }
+
+    state.posts[0].time=v;
+    lastActiveIndex=0;
+    debounceAutosave();
+    applyTimeValidity(0,v);
+    markExportDirty("已写入首楼时间（锚点），点击“生成 / 刷新预览”更新导出与预览。");
+  });
+
+  btnAdd.addEventListener("click", appendPost);
+
+  optRandomTime.addEventListener("change", ()=>{
+    state.options.randomTimeEnabled=!!optRandomTime.checked;
+    debounceAutosave();
+    markExportDirty("时间设置已更改，点击“生成 / 刷新预览”更新导出与预览。");
+  });
+  optMinSec.addEventListener("input", ()=>{
+    normalizeTimeOptions();
+    debounceAutosave();
+    markExportDirty("时间范围已更改，点击“生成 / 刷新预览”更新导出与预览。");
+  });
+  optMaxSec.addEventListener("input", ()=>{
+    normalizeTimeOptions();
+    debounceAutosave();
+    markExportDirty("时间范围已更改，点击“生成 / 刷新预览”更新导出与预览。");
+  });
+
+  btnLockTimes.addEventListener("click", ()=>{ lockTimes(); setStatus("已生成并锁定时间。","ok"); });
+  btnRerollTimes.addEventListener("click", rerollTimes);
+  btnUnlockTimes.addEventListener("click", ()=>{ unlockTimes(false); updateTopBadges(); });
+
+  btnRender.addEventListener("click", refreshAll);
+
+  btnCopy.addEventListener("click", async ()=>{
+    const ok=await copyToClipboard(outText.value);
+    setStatus(ok?"已复制。":"复制失败，请手动选中复制。", ok?"ok":"warn");
+  });
+
+  btnDownload.addEventListener("click", ()=>{
+    const mode=state.config.exportMode;
+    const content=outText.value;
+    const filename=mode==="ao3_html"?"ao3_forum_snippet.html":"forum.txt";
+    const type=mode==="ao3_html"?"text/html;charset=utf-8":"text/plain;charset=utf-8";
+    const blob=new Blob([content],{type});
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob);
+    a.download=filename;
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+    setStatus("已下载导出文件。","ok");
+  });
+
+  btnSave.addEventListener("click", ()=>{ if(saveState()) setStatus("已保存到本地。","ok"); });
+
+  btnNew.addEventListener("click", ()=>{
+    state=defaultState();
+    lastActiveIndex=0;
+    saveState();
+    applyStateToUI();
+    renderPosts();
+    previewEl.innerHTML="";
+    outText.value="";
+    exportHint.textContent="新帖子已创建：请先在“更改设置”中选择结构/字段/导出/时间/随机ID，然后点“应用并进入编辑”。";
+    setStatus("已开始新帖子：请重新选择初始化设置。","ok");
+    openWizard();
+  });
+
+  btnCopyHtml.addEventListener("click", copyHtmlSnippet);
+  btnCopyTxt.addEventListener("click", copyTxtAll);
+
+  btnExportState.addEventListener("click", exportStateJson);
+  btnImportState.addEventListener("click", ()=> fileImport.click());
+  fileImport.addEventListener("change", ()=> importStateFromFile(fileImport.files && fileImport.files[0]));
+
+  // 预览长按复制纯文本
+  let lpTimer=null;
+  function clearLP(){ if(lpTimer){ clearTimeout(lpTimer); lpTimer=null; } }
+  function startLP(){
+    clearLP();
+    lpTimer=setTimeout(()=>{ copyPreviewPlainText(); }, 520);
+  }
+  previewEl.addEventListener("touchstart", ()=> startLP(), {passive:true});
+  previewEl.addEventListener("touchmove", ()=> clearLP(), {passive:true});
+  previewEl.addEventListener("touchend", ()=> clearLP(), {passive:true});
+  previewEl.addEventListener("touchcancel", ()=> clearLP(), {passive:true});
+
+  // posts + rte events
+  document.addEventListener("click", (e)=>{
+    const t=e.target;
+
+    if(t && t.dataset && t.dataset.sum!==undefined){
+      const i=Number(t.dataset.sum);
+      if(Number.isFinite(i)) lastActiveIndex=i;
+      return;
+    }
+    if(t && t.dataset && t.dataset.del!==undefined){
+      const i=Number(t.dataset.del);
+      state.posts.splice(i,1);
+      if(state.options.locked && Array.isArray(state.options.lockedTimes)) state.options.lockedTimes.splice(i,1);
+      if(lastActiveIndex>=state.posts.length) lastActiveIndex=Math.max(0,state.posts.length-1);
+      refreshAll();
+      return;
+    }
+    if(t && t.dataset && t.dataset.genid!==undefined){
+      genIdForPost(Number(t.dataset.genid));
+      return;
+    }
+    if(t && t.dataset && t.dataset.insertbelow!==undefined){
+      const i=Number(t.dataset.insertbelow);
+      lastActiveIndex=i;
+      insertPostBelow(i);
+      return;
+    }
+
+    if(t && t.dataset && t.dataset.rtecmd){
+      const cmd=t.dataset.rtecmd;
+      if(cmd==="insertLineBreak") rteCommand("insertHTML","<br>");
+      else rteCommand(cmd);
+      markExportDirty();
+    }
+    if(t && t.dataset && t.dataset.rtelink){ rteLink(); markExportDirty(); }
+    if(t && t.dataset && t.dataset.rteclear){ rteClear(); markExportDirty(); }
+  });
+
+  document.addEventListener("focusin", (e)=>{
+    const t=e.target;
+    if(t && t.dataset && t.dataset.i!==undefined){
+      const i=Number(t.dataset.i);
+      if(Number.isFinite(i)) lastActiveIndex=i;
+    }
+    if(t && t.classList && t.classList.contains("rte")) activeRte=t;
+
+    // 手机：聚焦时滚到中间并上移，避免 Dock 遮挡
+    try{
+      if(isMobileUI()){
+        const isEditable =
+          (t && (t.tagName==="INPUT" || t.tagName==="TEXTAREA")) ||
+          (t && t.classList && t.classList.contains("rte"));
+        if(isEditable){
+          setTimeout(()=>{
+            t.scrollIntoView({behavior:"smooth", block:"center"});
+            window.scrollBy({top:-90, left:0, behavior:"smooth"});
+          }, 80);
+        }
+      }
+    }catch(err){}
+  });
+
+  document.addEventListener("input", (e)=>{
+    const t=e.target;
+
+    if(t && t.dataset && t.dataset.k){
+      const i=Number(t.dataset.i);
+      const k=t.dataset.k;
+      if(Number.isFinite(i)) lastActiveIndex=i;
+
+      if(k==="hasQuote"){
+        state.posts[i].hasQuote=!!t.checked;
+        debounceAutosave();
+        refreshAll();
+        markExportDirty("引用开关已更改，点击“生成 / 刷新预览”更新导出。");
+        return;
+      }
+
+      state.posts[i][k]=t.value;
+      debounceAutosave();
+
+      if(k==="time"){
+        applyTimeValidity(i,t.value);
+        markExportDirty("时间已更改，点击“生成 / 刷新预览”更新导出。");
+        return;
+      }
+      markExportDirty();
+      return;
+    }
+
+    if(t && t.dataset && t.dataset.rte){
+      const i=Number(t.dataset.i);
+      if(Number.isFinite(i)) lastActiveIndex=i;
+      const kind=t.dataset.rte;
+      if(kind==="quote") state.posts[i].quoteHtml=t.innerHTML;
+      if(kind==="body") state.posts[i].bodyHtml=t.innerHTML;
+      debounceAutosave();
+      markExportDirty();
+    }
+  });
+
+  // Dock buttons
+  tabEdit.addEventListener("click", ()=> setView("edit"));
+  tabPreview.addEventListener("click", ()=> setView("preview"));
+  dockRender.addEventListener("click", ()=> btnRender.click());
+  dockWiz.addEventListener("click", ()=> btnOpenWiz.click());
+  dockCopyHtml.addEventListener("click", copyHtmlSnippet);
+  dockCopyTxt.addEventListener("click", copyTxtAll);
+  dockCopyCurrent.addEventListener("click", ()=> btnCopy.click());
+  dockExportState.addEventListener("click", exportStateJson);
+  dockImportState.addEventListener("click", ()=> btnImportState.click());
+
+  window.addEventListener("resize", syncDockVisibility);
+
+  // ---------- boot ----------
+  window.addEventListener("error", ()=>{ setStatus("页面脚本报错导致UI异常：请打开控制台查看错误信息。","warn"); });
+
+  function applyStateToUI(){
+    inpTitle.value = state.title || "";
+    optRandomTime.checked = !!state.options.randomTimeEnabled;
+    optMinSec.value = state.options.minSec ?? 5;
+    optMaxSec.value = state.options.maxSec ?? 45;
+    inpFirstTime.value = (state.posts[0]?.time || "");
+    inpFirstTime.placeholder = getTimePlaceholder();
+  }
+
+  const had = !!localStorage.getItem(STORAGE_KEY);
+  applyStateToUI();
+  syncDockVisibility();
+  updateTopBadges();
+  updateRandBadge();
+  renderPosts();
+
+  if(had){
+    refreshAll();
+    setStatus("已从本地恢复上次编辑。","ok");
+  }else{
+    refreshAll();
+    setStatus("首次使用：建议先点“更改设置”配置字段与结构。","ok");
+    openWizard();
+  }
+
+})();
+</script>
+</body>
+</html>
