@@ -4,6 +4,9 @@
 
 在线地址
 https://cyphadr.github.io/forumbuilder/
+本地下载（百度云）
+通过网盘分享的文件：
+链接: https://pan.baidu.com/s/1nRHrU-5MJpBhdxPTrq9e2Q?pwd=qwr2 提取码: qwr2 复制这段内容后打开百度网盘手机App，操作更方便哦
 
 ---
 
