@@ -4,10 +4,10 @@
 
 在线地址
 https://cyphadr.github.io/forumbuilder/
-本地下载（百度云）
-通过网盘分享的文件：
-链接: https://pan.baidu.com/s/1nRHrU-5MJpBhdxPTrq9e2Q?pwd=qwr2 提取码: qwr2 复制这段内容后打开百度网盘手机App，操作更方便哦
 
+
+通过网盘分享的文件：
+链接: https://pan.baidu.com/s/1sDzi6G2gLgGMOOyWhpFBng?pwd=xhpd 提取码: xhpd 复制这段内容后打开百度网盘手机App，操作更方便哦
 ---
 
 - 📌 多楼层帖子编辑（自动编号）
