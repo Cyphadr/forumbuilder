@@ -1846,21 +1846,27 @@
   btnImportApply.addEventListener("click", importFromSelectedFile);
 
   // ---------- selection click (stop summary toggle) ----------
-  postsEl.addEventListener("click", (e)=>{
-    const t = e.target;
-    if(t && t.dataset && t.dataset.sel !== undefined){
-      e.preventDefault();
-      e.stopPropagation();
-      const i = Number(t.dataset.sel);
-      if(Number.isFinite(i)){
-        ensureSelLength();
-        state.ui.selected[i] = !!t.checked;
-        debounceAutosave();
-        syncSelBadge();
-      }
-      return;
+  // 1) click：只阻止冒泡，避免点复选框触发 summary 折叠
+postsEl.addEventListener("click", (e)=>{
+  const t = e.target;
+  if(t && t.dataset && t.dataset.sel !== undefined){
+    e.stopPropagation(); // 不要 preventDefault
+  }
+}, true);
+
+// 2) change：真正同步选中状态
+postsEl.addEventListener("change", (e)=>{
+  const t = e.target;
+  if(t && t.dataset && t.dataset.sel !== undefined){
+    const i = Number(t.dataset.sel);
+    if(Number.isFinite(i)){
+      ensureSelLength();
+      state.ui.selected[i] = !!t.checked;
+      debounceAutosave();
+      syncSelBadge();
     }
-  }, true);
+  }
+});
 
   // ---------- RTE + post events ----------
   document.addEventListener("click", (e)=>{
@@ -2078,3 +2084,4 @@
 </script>
 </body>
 </html>
+
